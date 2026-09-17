@@ -19,6 +19,8 @@ bot.py
 import asyncio
 import logging
 import os
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import bale
 
@@ -27,6 +29,29 @@ from scoring import compute_auto_score
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("journalist-bot")
+
+
+class _HealthCheckHandler(BaseHTTPRequestHandler):
+    """یک وب‌سرور بسیار ساده، فقط برای این‌که Render (که در پلن رایگان فقط
+    از نوع Web Service پشتیبانی می‌کند، نه Background Worker) این سرویس را
+    زنده تشخیص بدهد. کار واقعی (ارتباط با بله) در ترد اصلی و با polling
+    انجام می‌شود."""
+
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.end_headers()
+        self.wfile.write("ربات فعال است.".encode("utf-8"))
+
+    def log_message(self, format, *args):  # noqa: A002 - جلوگیری از لاگ شلوغ
+        pass
+
+
+def _run_health_check_server():
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), _HealthCheckHandler)
+    logger.info("وب‌سرور سلامت روی پورت %s بالا آمد", port)
+    server.serve_forever()
 
 BOT_TOKEN = os.environ.get("BALE_BOT_TOKEN")
 if not BOT_TOKEN:
@@ -154,4 +179,5 @@ async def on_message(message: "bale.Message"):
 
 
 if __name__ == "__main__":
+    threading.Thread(target=_run_health_check_server, daemon=True).start()
     bot.run()
