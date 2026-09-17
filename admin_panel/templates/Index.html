@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+    <h2 style="margin:0;">جمع امتیاز روزنامه‌ها</h2>
+    <a href="{{ url_for('export_excel') }}"><button type="button">دانلود خروجی اکسل</button></a>
+  </div>
+  <table>
+    <thead><tr><th>روزنامه</th><th>جمع امتیاز</th></tr></thead>
+    <tbody>
+      {% for name, total in totals %}
+      <tr><td>{{ name }}</td><td><span class="score-badge">{{ total }}</span></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <form method="get" style="margin-bottom:12px;">
+    <label class="muted">فیلتر بر اساس روزنامه:</label>
+    <select name="newspaper" onchange="this.form.submit()">
+      <option value="">همه</option>
+      {% for n in newspapers %}
+      <option value="{{ n }}" {% if n == active_filter %}selected{% endif %}>{{ n }}</option>
+      {% endfor %}
+    </select>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>تاریخ ثبت</th>
+        <th>روزنامه</th>
+        <th>خبرنگار</th>
+        <th>تیتر</th>
+        <th>تاریخ چاپ</th>
+        <th>امتیاز اولیه</th>
+        <th>صفحه اول</th>
+        <th>امتیاز نهایی</th>
+        <th>یادداشت</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in submissions %}
+      <tr>
+        <td class="muted">{{ s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else '' }}</td>
+        <td>{{ s.newspaper_name }}</td>
+        <td>{{ s.journalist_name }}</td>
+        <td>{{ s.headline }}</td>
+        <td>{{ s.publish_date }}</td>
+        <td>{{ s.auto_score }}</td>
+        <td>
+          <form method="post" action="{{ url_for('update_submission', submission_id=s.id) }}" style="display:flex; gap:4px; align-items:center;">
+            <select name="is_front_page">
+              <option value="unknown" {% if s.is_front_page is none %}selected{% endif %}>نامشخص</option>
+              <option value="yes" {% if s.is_front_page == True %}selected{% endif %}>بله</option>
+              <option value="no" {% if s.is_front_page == False %}selected{% endif %}>خیر</option>
+            </select>
+        </td>
+        <td>
+            <input type="number" name="final_score" value="{{ s.final_score if s.final_score is not none else '' }}" style="width:70px;" placeholder="{{ s.auto_score }}">
+        </td>
+        <td>
+            <input type="text" name="admin_note" value="{{ s.admin_note or '' }}" style="width:120px;">
+        </td>
+        <td>
+            <button type="submit">ذخیره</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
